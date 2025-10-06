@@ -1,0 +1,74 @@
+# main.py
+from __future__ import annotations
+
+from typing import Dict, List, Optional
+from uuid import UUID
+from datetime import datetime
+
+from fastapi import FastAPI, HTTPException, Query, status
+
+from models.movie import (
+    MovieCreate,
+    MovieRead,
+    Genre,
+    ParentalRating,
+)
+
+app = FastAPI(
+    title="Movie Service",
+    version="0.1.0",
+    description=(
+        "Central catalog for all movie information. "
+        "Manages title, synopsis, cast, director, genres, and parental ratings. "
+        "This service does NOT know showtimes or locations."
+    ),
+)
+
+# In-memory store (same pattern as your Books & Authors code)
+movies: Dict[UUID, MovieRead] = {}
+
+
+# ----------------------- MOVIES -----------------------
+@app.get("/movies", response_model=List[MovieRead], summary="List all available movies")
+def list_movies(
+    title: Optional[str] = Query(None, description="Case-insensitive substring match on title"),
+    director: Optional[str] = Query(None, description="Exact director name"),
+    genre: Optional[Genre] = Query(None, description="Filter by a single genre"),
+    parental_rating: Optional[ParentalRating] = Query(None, description="Filter by parental rating"),
+) -> List[MovieRead]:
+    vals = list(movies.values())
+
+    if title is not None:
+        t = title.lower()
+        vals = [m for m in vals if t in m.title.lower()]
+    if director is not None:
+        vals = [m for m in vals if m.director == director]
+    if genre is not None:
+        vals = [m for m in vals if genre in m.genres]
+    if parental_rating is not None:
+        vals = [m for m in vals if m.parental_rating == parental_rating]
+
+    return vals
+
+
+@app.get("/movies/{movie_id}", response_model=MovieRead, summary="Get detailed movie info")
+def get_movie(movie_id: UUID) -> MovieRead:
+    if movie_id not in movies:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    return movies[movie_id]
+
+
+@app.post("/movies", response_model=MovieRead, status_code=status.HTTP_201_CREATED, summary="(Admin) Add a movie")
+def create_movie(body: MovieCreate) -> MovieRead:
+    movie = MovieRead(**body.model_dump())
+    # Prevent accidental overwrite if client reuses an ID (shouldn't happen, but safe)
+    if movie.id in movies:
+        raise HTTPException(status_code=400, detail="Movie with this ID already exists")
+    movies[movie.id] = movie
+    return movie
+
+
+# ------------------------ Root ------------------------
+@app.get("/")
+def root():
+    return {"message": "Welcome to the Movie Service. See /docs for Swagger UI."}

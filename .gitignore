@@ -1,0 +1,39 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+.Python
+
+# ---- Virtual Environments ----
+.venv/
+venv/
+ENV/
+env/
+
+# ---- Test / Coverage ----
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ---- Local config / secrets ----
+.env
+.env.*.local
+*.sqlite3
+
+# ---- Editors / OS ----
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# ---- Build / Dist ----
+build/
+dist/
+site/
+pip-wheel-metadata/
+wheelhouse/
