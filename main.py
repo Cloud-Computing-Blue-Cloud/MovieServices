@@ -1,6 +1,8 @@
 # main.py
 from __future__ import annotations
 
+import os
+
 from typing import Dict, List, Optional
 from uuid import UUID
 from datetime import datetime
@@ -12,6 +14,9 @@ from models.movie import (
     MovieRead,
     Genre,
 )
+
+port = int(os.environ.get("FASTAPIPORT", 8001))
+
 
 app = FastAPI(
     title="Movie Service",
@@ -80,3 +85,8 @@ def create_movie(body: MovieCreate) -> MovieRead:
 @app.get("/")
 def root():
     return {"message": "Welcome to the Movie Service. See /docs for Swagger UI."}
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
