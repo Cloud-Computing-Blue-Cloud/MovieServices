@@ -9,13 +9,13 @@ from pydantic import BaseModel, Field, HttpUrl
 
 
 # ----------------------- Enums -----------------------
-class ParentalRating(str, Enum):
-    G = "G"
-    PG = "PG"
-    PG_13 = "PG-13"
-    R = "R"
-    NC_17 = "NC-17"
-    UNRATED = "UNRATED"
+# class ParentalRating(str, Enum):
+#     G = "G"
+#     PG = "PG"
+#     PG_13 = "PG-13"
+#     R = "R"
+#     NC_17 = "NC-17"
+#     UNRATED = "UNRATED"
 
 
 class Genre(str, Enum):
@@ -60,40 +60,25 @@ class CastMember(BaseModel):
 
 # ---------------------- Movie I/O ---------------------
 class MovieBase(BaseModel):
-    title: str = Field(..., description="Movie title", json_schema_extra={"example": "Oppenheimer"})
-    synopsis: Optional[str] = Field(
-        None,
-        description="Short plot summary",
-        json_schema_extra={"example": "The story of J. Robert Oppenheimer and the atomic bomb."},
-    )
-    director: str = Field(..., description="Director", json_schema_extra={"example": "Christopher Nolan"})
-    cast: List[CastMember] = Field(default_factory=list, description="Cast entries")
     genres: List[Genre] = Field(default_factory=list, description="One or more genres")
-    parental_rating: ParentalRating = Field(
-        default=ParentalRating.UNRATED,
-        description="Parental rating",
-        json_schema_extra={"example": "R"},
-    )
     runtime_minutes: Optional[int] = Field(None, ge=1, description="Runtime in minutes", json_schema_extra={"example": 180})
     release_date: Optional[date] = Field(None, description="Release date", json_schema_extra={"example": "2023-07-21"})
-    poster_url: Optional[HttpUrl] = Field(None, description="Poster URL")
+    name : str = Field(..., description="Movie title", json_schema_extra={"example": "Oppenheimer"})
+    rating: float = Field(..., ge=0.0, le=5.0, description="Movie rating", json_schema_extra={"example": 3.5})
+    language: str = Field(..., description="Language of the movie", json_schema_extra={"example": "English"})
+    is_active: bool = Field(..., description="Is the movie currently active", json_schema_extra={"example": True})
 
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                    "title": "Oppenheimer",
-                    "synopsis": "The story of J. Robert Oppenheimer and the atomic bomb.",
-                    "director": "Christopher Nolan",
-                    "cast": [
-                        {"name": "Cillian Murphy", "role": "J. Robert Oppenheimer"},
-                        {"name": "Emily Blunt", "role": "Katherine Oppenheimer"}
-                    ],
+                    "name": "Oppenheimer",
                     "genres": ["Drama", "History"],
-                    "parental_rating": "R",
                     "runtime_minutes": 180,
                     "release_date": "2023-07-21",
-                    "poster_url": "https://example.com/posters/oppenheimer.jpg"
+                    "rating": 4.5,
+                    "language": "English",
+                    "is_active": True
                 }
             ]
         }
@@ -107,29 +92,17 @@ class MovieCreate(MovieBase):
 
 class MovieUpdate(BaseModel):
     """Partial update (if you add PUT/PATCH later)."""
-    title: Optional[str] = None
-    synopsis: Optional[str] = None
-    director: Optional[str] = None
-    cast: Optional[List[CastMember]] = None
-    genres: Optional[List[Genre]] = None
-    parental_rating: Optional[ParentalRating] = None
-    runtime_minutes: Optional[int] = Field(None, ge=1)
-    release_date: Optional[date] = None
-    poster_url: Optional[HttpUrl] = None
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {"runtime_minutes": 185},
-                {"genres": ["Drama"]},
-                {"title": "Oppenheimer (Director's Cut)"},
-            ]
-        }
-    }
+    genres: Optional[List[Genre]] = Field(None, description="One or more genres")
+    runtime_minutes: Optional[int] = Field(None, ge=1, description="Runtime in minutes", json_schema_extra={"example": 180})
+    release_date: Optional[date] = Field(None, description="Release date", json_schema_extra={"example": "2023-07-21"})
+    name : Optional[str] = Field(None, description="Movie title", json_schema_extra={"example": "Oppenheimer"})
+    rating: Optional[float] = Field(None, ge=0.0, le=5.0, description="Movie rating", json_schema_extra={"example": 3.5})
+    language: Optional[str] = Field(None, description="Language of the movie", json_schema_extra={"example": "English"})
+    is_active: Optional[bool] = Field(None, description="Is the movie currently active", json_schema_extra={"example": True})
 
 
 class MovieRead(MovieBase):
-    id: UUID = Field(default_factory=uuid4, description="Server-generated Movie ID")
+    movie_id: UUID = Field(default_factory=uuid4, description="Server-generated Movie ID")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation time (UTC)")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update time (UTC)")
 
@@ -137,20 +110,16 @@ class MovieRead(MovieBase):
         "json_schema_extra": {
             "examples": [
                 {
-                    "id": "6ac3f6f5-3f32-4b81-8f9b-7f1d9f88a001",
-                    "title": "Oppenheimer",
-                    "synopsis": "The story of J. Robert Oppenheimer and the atomic bomb.",
-                    "director": "Christopher Nolan",
-                    "cast": [
-                        {"name": "Cillian Murphy", "role": "J. Robert Oppenheimer"},
-                        {"name": "Emily Blunt", "role": "Katherine Oppenheimer"}
-                    ],
+                    "movie_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "name": "Oppenheimer",
                     "genres": ["Drama", "History"],
-                    "parental_rating": "R",
                     "runtime_minutes": 180,
                     "release_date": "2023-07-21",
-                    "created_at": "2025-01-15T10:20:30Z",
-                    "updated_at": "2025-01-16T12:00:00Z"
+                    "rating": 4.5,
+                    "language": "English",
+                    "is_active": True,
+                    "created_at": "2023-10-01T12:00:00Z",
+                    "updated_at": "2023-10-01T12:00:00Z"
                 }
             ]
         }
