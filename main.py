@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from models.movie import (
     MovieCreate,
     MovieRead,
+    MovieUpdate,
     Genre,
 )
 
@@ -43,48 +44,27 @@ class PageMeta(BaseModel):
 
 class MoviesPage(BaseModel):
     items: List[MovieRead]
-    meta: PageMeta
+    meta: Optional[PageMeta] = None
 
 
 # ----------------------- MOVIES (list; unchanged) -----------------------
-@app.get("/movies", response_model=List[MovieRead], summary="List all available movies")
+@app.get("/movies", response_model=MoviesPage, summary="List all available movies")
 def list_movies(
-    name: Optional[str] = Query(None, description="Case-insensitive substring match on name"),
+    name: Optional[str] = Query(
+        None, description="Case-insensitive substring match on name"
+    ),
     genre: Optional[Genre] = Query(None, description="Filter by a single genre"),
     language: Optional[str] = Query(None, description="Filter by language"),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
-) -> List[MovieRead]:
-    vals = list(movies.values())
-
-    if name is not None:
-        n = name.lower()
-        vals = [m for m in vals if n in m.name.lower()]
-    if genre is not None:
-        vals = [m for m in vals if genre in m.genres]
-    if language is not None:
-        vals = [m for m in vals if m.language == language]
-    if is_active is not None:
-        vals = [m for m in vals if m.is_active == is_active]
-
-    return vals
-
-
-# ----------------------- MOVIES (paginated envelope) -----------------------
-@app.get(
-    "/movies/page",
-    response_model=MoviesPage,
-    summary="List movies with pagination (envelope response)",
-)
-def list_movies_page(
-    # Filters mirror /movies
-    name: Optional[str] = Query(None, description="Case-insensitive substring match on name"),
-    genre: Optional[Genre] = Query(None, description="Filter by a single genre"),
-    language: Optional[str] = Query(None, description="Filter by language"),
-    is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    # Pagination
-    page: int = Query(1, ge=1, description="1-based page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Items per page (max 100)"),
-) -> MoviesPage:
+    # Optional pagination
+    page: int = Query(1, ge=1, description="1-based page number (optional)"),
+    page_size: Optional[int] = Query(
+        None,
+        ge=1,
+        le=100,
+        description="Items per page (max 100). If not provided, returns all results without pagination",
+    ),
+):
     # 1) Start with all movies
     vals = list(movies.values())
 
@@ -99,10 +79,15 @@ def list_movies_page(
     if is_active is not None:
         vals = [m for m in vals if m.is_active == is_active]
 
-    # 3) Deterministic sort before slicing
+    # 3) Check if pagination is requested
+    if page_size is None:
+        # Return all results without pagination metadata
+        return MoviesPage(items=vals, meta=None)
+
+    # 4) Deterministic sort before slicing
     # Prefer release_date if present; else fall back to name; tie-break with movie_id
     def sort_key(m: MovieRead):
-        if hasattr(m, "release_date") and isinstance(getattr(m, "release_date"), datetime):
+        if m.release_date is not None:
             primary = m.release_date.isoformat()
         else:
             primary = m.name.lower()
@@ -111,16 +96,16 @@ def list_movies_page(
 
     vals.sort(key=sort_key)
 
-    # 4) Pagination math
+    # 5) Pagination math
     total = len(vals)
     total_pages = max(1, (total + page_size - 1) // page_size)
     start = (page - 1) * page_size
     end = start + page_size
 
-    # 5) Slice (empty list if out of range)
+    # 6) Slice (empty list if out of range)
     items = vals[start:end] if start < total else []
 
-    # 6) Envelope meta
+    # 7) Envelope meta
     meta = PageMeta(
         page=page,
         page_size=page_size,
@@ -134,7 +119,9 @@ def list_movies_page(
 
 
 # ----------------------- MOVIE DETAIL -----------------------
-@app.get("/movies/{movie_id}", response_model=MovieRead, summary="Get detailed movie info")
+@app.get(
+    "/movies/{movie_id}", response_model=MovieRead, summary="Get detailed movie info"
+)
 def get_movie(movie_id: UUID) -> MovieRead:
     if movie_id not in movies:
         raise HTTPException(status_code=404, detail="Movie not found")
@@ -157,11 +144,38 @@ def create_movie(body: MovieCreate) -> MovieRead:
     return movie
 
 
+# ----------------------- MOVIE UPDATE -----------------------
+@app.put(
+    "/movies/{movie_id}", response_model=MovieRead, summary="(Admin) Update a movie"
+)
+def update_movie(movie_id: UUID, body: MovieUpdate) -> MovieRead:
+    if movie_id not in movies:
+        raise HTTPException(status_code=404, detail="Movie not found")
+
+    existing_movie = movies[movie_id]
+    update_data = body.model_dump(exclude_unset=True)
+    updated_movie = existing_movie.model_copy(update=update_data)
+    updated_movie.updated_at = datetime.utcnow()
+    movies[movie_id] = updated_movie
+    return updated_movie
+
+
+# ----------------------- MOVIE DELETE -----------------------
+@app.delete("/movies/{movie_id}", summary="(Admin) Delete a movie")
+def delete_movie(movie_id: UUID):
+    if movie_id not in movies:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    del movies[movie_id]
+    return {"message": "Movie deleted successfully"}
+
+
 # ------------------------ Root & Runner ------------------------
 @app.get("/")
 def root():
     return {"message": "Welcome to the Movie Service. See /docs for Swagger UI."}
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
