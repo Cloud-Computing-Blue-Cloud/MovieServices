@@ -179,7 +179,7 @@ def list_movies(
 def get_movie(movie_id: int, db: Session = Depends(get_db)) -> MovieRead:
     m = db.query(Movie).filter(Movie.movie_id == movie_id, Movie.is_deleted == False).first()
     if not m:
-        raise HTTPException(status_code=404, detail="Movie not found")
+        raise HTTPException(status_code=404, detail=f"Movie {movie_id} not found")
     return MovieRead(
         movie_id=m.movie_id,
         name=m.name,
