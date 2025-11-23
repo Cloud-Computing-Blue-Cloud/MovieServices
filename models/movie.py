@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Optional, List
-from uuid import UUID, uuid4
 from datetime import date, datetime
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -102,7 +101,7 @@ class MovieUpdate(BaseModel):
 
 
 class MovieRead(MovieBase):
-    movie_id: UUID = Field(default_factory=uuid4, description="Server-generated Movie ID")
+    movie_id: int = Field(..., description="Server-generated Movie ID")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation time (UTC)")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update time (UTC)")
 
@@ -110,7 +109,7 @@ class MovieRead(MovieBase):
         "json_schema_extra": {
             "examples": [
                 {
-                    "movie_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "movie_id": 1,
                     "name": "Oppenheimer",
                     "genres": ["Drama", "History"],
                     "runtime_minutes": 180,
