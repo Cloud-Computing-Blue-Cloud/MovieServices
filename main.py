@@ -1,5 +1,6 @@
 # main.py
 from __future__ import annotations
+from dotenv import load_dotenv
 
 import os
 from typing import Dict, List, Optional
@@ -16,6 +17,8 @@ from models.movie import (
 )
 from routers import movies as movies_router
 from routers import genres as genres_router
+
+load_dotenv()
 
 port = int(os.environ.get("FASTAPIPORT", 8050))
 
