@@ -5,11 +5,13 @@ Environment:
 """
 
 import os
-
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 from datetime import datetime
+
+load_dotenv()
 
 # --- CONFIGURATION START ---
 DB_USER = os.getenv("DB_USER", "mysql-movies-user")
