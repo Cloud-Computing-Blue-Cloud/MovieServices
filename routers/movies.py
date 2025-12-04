@@ -36,7 +36,7 @@ def create_movie(payload: List[MovieCreate], db: Session = Depends(get_db)) -> L
     for item in payload:
         movie = Movie(
             name=item.name,
-            runtime_minutes=item.runtime_minutes or 0,
+            runtime_minutes=item.runtime_minutes if item.runtime_minutes is not None else 1,
             release_date=item.release_date,
             rating=item.rating,
             language=item.language,
