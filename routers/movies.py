@@ -128,12 +128,14 @@ def list_movies(
     # Map to MovieRead objects
     vals: List[MovieRead] = []
     for m in rows:
+        # Convert 0 to None for runtime_minutes to satisfy validation (>= 1 or None)
+        runtime = m.runtime_minutes if m.runtime_minutes and m.runtime_minutes > 0 else None
         vals.append(
             MovieRead(
                 movie_id=m.movie_id,
                 name=m.name,
                 genres=[g.genre_name for g in m.genres],
-                runtime_minutes=m.runtime_minutes,
+                runtime_minutes=runtime,
                 release_date=m.release_date,
                 rating=float(m.rating) if m.rating is not None else None,
                 language=m.language,
@@ -180,11 +182,13 @@ def get_movie(movie_id: int, db: Session = Depends(get_db)) -> MovieRead:
     m = db.query(Movie).filter(Movie.movie_id == movie_id, Movie.is_deleted == False).first()
     if not m:
         raise HTTPException(status_code=404, detail=f"Movie {movie_id} not found")
+    # Convert 0 to None for runtime_minutes to satisfy validation (>= 1 or None)
+    runtime = m.runtime_minutes if m.runtime_minutes and m.runtime_minutes > 0 else None
     return MovieRead(
         movie_id=m.movie_id,
         name=m.name,
         genres=[g.genre_name for g in m.genres],
-        runtime_minutes=m.runtime_minutes,
+        runtime_minutes=runtime,
         release_date=m.release_date,
         rating=float(m.rating) if m.rating is not None else None,
         language=m.language,

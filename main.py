@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Query, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from models.movie import (
@@ -30,6 +31,15 @@ app = FastAPI(
         "Manages name, genres, rating, language, runtime, and release date. "
         "This service does NOT know showtimes or locations."
     ),
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(movies_router.router)
