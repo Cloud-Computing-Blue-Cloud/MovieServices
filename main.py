@@ -21,7 +21,7 @@ from routers import genres as genres_router
 
 load_dotenv()
 
-port = int(os.environ.get("FASTAPIPORT", 8050))
+port = int(os.environ.get("FASTAPIPORT", 5001))
 
 app = FastAPI(
     title="Movie Service",
